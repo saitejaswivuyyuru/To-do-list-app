@@ -56,6 +56,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Commit 3: Clear all tasks
+  void clearAllTasks() {
+    setState(() {
+      tasks.clear();
+    });
+  }
+
   void toggleTask(int index) {
     setState(() {
       tasks[index].completed = !tasks[index].completed;
@@ -149,7 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    int completedCount = tasks.where((task) => task.completed).length;
+    int completedCount =
+        tasks.where((task) => task.completed).length;
     int pendingCount = tasks.length - completedCount;
 
     return Scaffold(
@@ -161,6 +169,15 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+
+        // Commit 3: Clear All Tasks button
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: 'Clear All Tasks',
+            onPressed: clearAllTasks,
+          ),
+        ],
       ),
 
       floatingActionButton: FloatingActionButton.extended(
@@ -311,7 +328,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
+                            contentPadding:
+                                const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 6,
                             ),
@@ -341,14 +359,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Container(
                                   margin: const EdgeInsets.only(top: 5),
-                                  padding: const EdgeInsets.symmetric(
+                                  padding:
+                                      const EdgeInsets.symmetric(
                                     horizontal: 8,
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: getPriorityColor(task.priority)
-                                        .withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: getPriorityColor(
+                                      task.priority,
+                                    ).withOpacity(0.15),
+                                    borderRadius:
+                                        BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     task.priority,
