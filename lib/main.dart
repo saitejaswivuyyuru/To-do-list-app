@@ -11,7 +11,7 @@ class TodoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Smart To-Do List',
+      title: 'My Smart To-Do List',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         scaffoldBackgroundColor: const Color(0xFFF5F6FA),
@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         title: const Text(
-          'Smart To-Do List',
+          'My Smart To-Do List',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
