@@ -43,6 +43,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final List<Task> tasks = [];
+  final TextEditingController searchController = TextEditingController();
+
+  String searchText = '';
 
   void addTask(String title, String priority) {
     setState(() {
@@ -167,7 +170,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     int completedCount =
         tasks.where((task) => task.completed).length;
+
     int pendingCount = tasks.length - completedCount;
+
+    // Commit 5: Filter tasks according to search text
+    final filteredTasks = tasks.where((task) {
+      return task.title
+          .toLowerCase()
+          .contains(searchText.toLowerCase());
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -201,6 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Summary Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -283,6 +295,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 20),
 
+            // Commit 5: Search field
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search tasks...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: searchText.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          searchController.clear();
+                          setState(() {
+                            searchText = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  searchText = value;
+                });
+              },
+            ),
+
+            const SizedBox(height: 16),
+
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -297,37 +339,43 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 10),
 
             Expanded(
-              child: tasks.isEmpty
-                  ? const Center(
+              child: filteredTasks.isEmpty
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.task_alt,
-                            size: 80,
+                          const Icon(
+                            Icons.search_off,
+                            size: 70,
                             color: Colors.indigo,
                           ),
-                          SizedBox(height: 15),
+                          const SizedBox(height: 15),
                           Text(
-                            'No tasks yet!',
-                            style: TextStyle(
+                            searchText.isEmpty
+                                ? 'No tasks yet!'
+                                : 'No matching tasks found!',
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 5),
+                          const SizedBox(height: 5),
                           Text(
-                            'Tap "Add Task" to create your first task.',
+                            searchText.isEmpty
+                                ? 'Tap "Add Task" to create your first task.'
+                                : 'Try searching for another task.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
                     )
                   : ListView.builder(
-                      itemCount: tasks.length,
+                      itemCount: filteredTasks.length,
                       itemBuilder: (context, index) {
-                        final task = tasks[index];
+                        final task = filteredTasks[index];
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -341,12 +389,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               horizontal: 12,
                               vertical: 6,
                             ),
+
                             leading: Checkbox(
                               value: task.completed,
                               onChanged: (_) {
-                                toggleTask(index);
+                                final originalIndex =
+                                    tasks.indexOf(task);
+                                toggleTask(originalIndex);
                               },
                             ),
+
                             title: Text(
                               task.title,
                               style: TextStyle(
@@ -360,6 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     : Colors.black,
                               ),
                             ),
+
                             subtitle: Row(
                               children: [
                                 Container(
@@ -388,13 +441,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
+
                             trailing: IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
                                 color: Colors.red,
                               ),
                               onPressed: () {
-                                deleteTask(index);
+                                final originalIndex =
+                                    tasks.indexOf(task);
+                                deleteTask(originalIndex);
                               },
                             ),
                           ),
