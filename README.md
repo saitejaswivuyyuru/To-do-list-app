@@ -1,3 +1,4 @@
+![My Smart To-Do List](assets/todo_banner.png)
 # My Smart To-Do List
 
 ## Project Progress
