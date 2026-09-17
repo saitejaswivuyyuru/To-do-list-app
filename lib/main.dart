@@ -126,13 +126,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (titleController.text.trim().isNotEmpty) {
-                      addTask(
-                        titleController.text.trim(),
-                        selectedPriority,
+                    // Commit 4: Empty-task validation
+                    if (titleController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a task name'),
+                        ),
                       );
-                      Navigator.pop(context);
+                      return;
                     }
+
+                    addTask(
+                      titleController.text.trim(),
+                      selectedPriority,
+                    );
+
+                    Navigator.pop(context);
                   },
                   child: const Text('Add Task'),
                 ),
@@ -192,7 +201,6 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Summary Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -333,14 +341,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               horizontal: 12,
                               vertical: 6,
                             ),
-
                             leading: Checkbox(
                               value: task.completed,
                               onChanged: (_) {
                                 toggleTask(index);
                               },
                             ),
-
                             title: Text(
                               task.title,
                               style: TextStyle(
@@ -354,7 +360,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                     : Colors.black,
                               ),
                             ),
-
                             subtitle: Row(
                               children: [
                                 Container(
@@ -383,7 +388,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
-
                             trailing: IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
