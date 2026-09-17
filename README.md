@@ -1,17 +1,27 @@
-# to_do_list
+# My Smart To-Do List
 
-A new Flutter project.
+## Project Progress
 
-## Getting Started
+### Commit 1 – Initial Project
+Created the basic Flutter To-Do List application.
 
-This project is a starting point for a Flutter application.
+### Commit 2 – Improve App Title/UI
+Updated the application title and improved the UI.
 
-A few resources to get you started if this is your first Flutter project:
+### Commit 3 – Clear All Tasks
+Added a button to clear all tasks.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Commit 4 – Empty Task Validation
+Added validation for empty task names.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Commit 5 – Task Search
+Added a search feature to find tasks easily.
+
+## Features
+
+- Add tasks
+- Set priority
+- Mark tasks as completed
+- Delete tasks
+- Clear all tasks
+- Search tasks
