@@ -4,24 +4,6 @@ void main() {
   runApp(const TodoApp());
 }
 
-class TodoApp extends StatelessWidget {
-  const TodoApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'My Smart To-Do List',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: const Color(0xFFF5F6FA),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
 class Task {
   String title;
   String priority;
@@ -32,6 +14,26 @@ class Task {
     required this.priority,
     this.completed = false,
   });
+}
+
+class TodoApp extends StatelessWidget {
+  const TodoApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Smart To-Do List',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F6FA),
+        useMaterial3: true,
+      ),
+      home: const HomeScreen(),
+    );
+  }
 }
 
 class HomeScreen extends StatefulWidget {
@@ -48,21 +50,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String searchText = '';
 
+  int get completedCount =>
+      tasks.where((task) => task.completed).length;
+
+  int get pendingCount =>
+      tasks.where((task) => !task.completed).length;
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   void addTask(String title, String priority) {
     setState(() {
       tasks.add(Task(title: title, priority: priority));
-    });
-  }
-
-  void deleteTask(int index) {
-    setState(() {
-      tasks.removeAt(index);
-    });
-  }
-
-  void clearAllTasks() {
-    setState(() {
-      tasks.clear();
     });
   }
 
@@ -72,87 +74,105 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void showAddTaskDialog() {
+  void deleteTask(int index) {
+    setState(() {
+      tasks.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Task deleted')),
+    );
+  }
+
+  Future<void> showAddTaskDialog() async {
     final titleController = TextEditingController();
     String selectedPriority = 'Medium';
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text(
-                'Add New Task',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Task name',
-                        hintText: 'Enter your task',
-                        border: OutlineInputBorder(),
-                      ),
+              title: const Text('Add New Task'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    autofocus: true,
+                    textCapitalization:
+                        TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Task title',
+                      hintText: 'Enter your task',
+                      prefixIcon: Icon(Icons.edit_note),
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: selectedPriority,
-                      decoration: const InputDecoration(
-                        labelText: 'Priority',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ['Low', 'Medium', 'High']
-                          .map(
-                            (priority) => DropdownMenuItem<String>(
-                              value: priority,
-                              child: Text(priority),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() {
-                            selectedPriority = value;
-                          });
-                        }
-                      },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedPriority,
+                    decoration: const InputDecoration(
+                      labelText: 'Priority',
+                      border: OutlineInputBorder(),
                     ),
-                  ],
-                ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Low',
+                        child: Text('Low'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Medium',
+                        child: Text('Medium'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'High',
+                        child: Text('High'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          selectedPriority = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    titleController.dispose();
-                    Navigator.pop(dialogContext);
-                  },
+                  onPressed: () =>
+                      Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () {
-                    if (titleController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    final title =
+                        titleController.text.trim();
+
+                    if (title.isEmpty) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Please enter a task name',
+                            'Please enter a task title',
                           ),
                         ),
                       );
                       return;
                     }
 
-                    addTask(
-                      titleController.text.trim(),
-                      selectedPriority,
-                    );
-
-                    titleController.dispose();
+                    addTask(title, selectedPriority);
                     Navigator.pop(dialogContext);
+
+                    ScaffoldMessenger.of(this.context)
+                        .showSnackBar(
+                      const SnackBar(
+                        content: Text('Task added successfully'),
+                      ),
+                    );
                   },
                   child: const Text('Add Task'),
                 ),
@@ -162,47 +182,87 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+
+    titleController.dispose();
   }
 
-  Color getPriorityColor(String priority) {
-    if (priority == 'High') {
-      return Colors.red;
-    } else if (priority == 'Medium') {
-      return Colors.orange;
-    } else {
-      return Colors.green;
+  Future<void> clearAllTasks() async {
+    if (tasks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('There are no tasks to clear')),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear All Tasks?'),
+        content: const Text(
+          'Are you sure you want to delete all tasks?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, true),
+            child: const Text('Clear All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        tasks.clear();
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All tasks cleared')),
+      );
+    }
+  }
+
+  Color priorityColor(String priority) {
+    switch (priority) {
+      case 'High':
+        return Colors.red;
+      case 'Medium':
+        return Colors.orange.shade800;
+      default:
+        return Colors.green;
     }
   }
 
   Widget buildSummaryItem(
-    IconData icon,
-    String count,
     String label,
+    int count,
+    IconData icon,
+    Color color,
   ) {
     return Expanded(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 28),
+          Icon(icon, color: color, size: 25),
           const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              count,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-              ),
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontSize: 23,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 3),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.white70),
-            ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12),
           ),
         ],
       ),
@@ -210,87 +270,80 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildTaskCard(Task task) {
-    final originalIndex = tasks.indexOf(task);
-    final priorityColor = getPriorityColor(task.priority);
-
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
+      margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 6,
-        ),
-        leading: Checkbox(
-          value: task.completed,
-          onChanged: (_) => toggleTask(originalIndex),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            decoration: task.completed
-                ? TextDecoration.lineThrough
-                : TextDecoration.none,
-            color: task.completed ? Colors.grey : Colors.black,
-          ),
-        ),
-        subtitle: Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Checkbox(
+              value: task.completed,
+              onChanged: (_) {
+                toggleTask(tasks.indexOf(task));
+              },
             ),
-            decoration: BoxDecoration(
-              color: priorityColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              task.priority,
-              style: TextStyle(
-                color: priorityColor,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      decoration: task.completed
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      color: task.completed
+                          ? Colors.grey
+                          : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: priorityColor(task.priority)
+                          .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${task.priority} Priority',
+                      style: TextStyle(
+                        color: priorityColor(task.priority),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ),
-        trailing: IconButton(
-          tooltip: 'Delete task',
-          icon: const Icon(
-            Icons.delete_outline,
-            color: Colors.red,
-          ),
-          onPressed: () => deleteTask(originalIndex),
+            IconButton(
+              tooltip: 'Delete task',
+              onPressed: () {
+                deleteTask(tasks.indexOf(task));
+              },
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Responsive UI: get the available screen width.
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    final contentMaxWidth =
-        screenWidth >= 1000 ? 1000.0 : screenWidth;
-
-    final completedCount =
-        tasks.where((task) => task.completed).length;
-
-    final pendingCount = tasks.length - completedCount;
-
     final filteredTasks = tasks.where((task) {
       return task.title
           .toLowerCase()
@@ -299,203 +352,405 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
         title: const Text(
-          'My Smart To-Do List',
+          'Smart To-Do List',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            tooltip: 'Clear All Tasks',
+            tooltip: 'Statistics',
+            icon: const Icon(Icons.bar_chart),
             onPressed: () {
-              if (tasks.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('There are no tasks to clear'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StatisticsScreen(
+                    tasks: tasks,
                   ),
-                );
-                return;
-              }
-
-              showDialog(
-                context: context,
-                builder: (dialogContext) => AlertDialog(
-                  title: const Text('Clear all tasks?'),
-                  content: const Text(
-                    'This will remove every task from the list.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () =>
-                          Navigator.pop(dialogContext),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        clearAllTasks();
-                        Navigator.pop(dialogContext);
-                      },
-                      child: const Text('Clear All'),
-                    ),
-                  ],
                 ),
               );
             },
           ),
+          IconButton(
+            tooltip: 'Clear all tasks',
+            icon: const Icon(Icons.delete_sweep_outlined),
+            onPressed: clearAllTasks,
+          ),
+          const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: showAddTaskDialog,
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Task'),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: contentMaxWidth,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            // LayoutBuilder adapts the task layout to available width.
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWideScreen =
-                    constraints.maxWidth >= 700;
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final contentWidth =
+                constraints.maxWidth > 1000
+                    ? 1000.0
+                    : constraints.maxWidth;
 
-                return Column(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 20,
+            return Center(
+              child: SizedBox(
+                width: contentWidth,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF3949AB),
+                              Color(0xFF7986CB),
+                            ],
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(20),
+                        ),
+                        child: const Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Stay Organized!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 25,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Plan your day and achieve your goals.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.indigo,
-                        borderRadius: BorderRadius.circular(20),
+                      const SizedBox(height: 20),
+
+                      Card(
+                        elevation: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 20,
+                            horizontal: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              buildSummaryItem(
+                                'Total',
+                                tasks.length,
+                                Icons.checklist,
+                                Colors.indigo,
+                              ),
+                              buildSummaryItem(
+                                'Pending',
+                                pendingCount,
+                                Icons.pending_actions,
+                                Colors.orange,
+                              ),
+                              buildSummaryItem(
+                                'Completed',
+                                completedCount,
+                                Icons.task_alt,
+                                Colors.green,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: Row(
+
+                      const SizedBox(height: 20),
+
+                      TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            searchText = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search your tasks...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: searchText.isNotEmpty
+                              ? IconButton(
+                                  onPressed: () {
+                                    searchController.clear();
+                                    setState(() {
+                                      searchText = '';
+                                    });
+                                  },
+                                  icon: const Icon(Icons.clear),
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
-                          buildSummaryItem(
-                            Icons.list_alt,
-                            '${tasks.length}',
-                            'Total',
+                          const Text(
+                            'My Tasks',
+                            style: TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          buildSummaryItem(
-                            Icons.pending_actions,
-                            '$pendingCount',
-                            'Pending',
-                          ),
-                          buildSummaryItem(
-                            Icons.check_circle,
-                            '$completedCount',
-                            'Completed',
+                          Text(
+                            '${filteredTasks.length} tasks',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search tasks...',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: searchText.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  searchController.clear();
-                                  setState(() {
-                                    searchText = '';
-                                  });
-                                },
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+
+                      const SizedBox(height: 12),
+
+                      if (filteredTasks.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(28),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  searchText.isEmpty
+                                      ? Icons
+                                          .format_list_bulleted
+                                      : Icons.search_off,
+                                  size: 55,
+                                  color: Colors.indigo.shade200,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  searchText.isEmpty
+                                      ? 'No tasks yet!'
+                                      : 'No matching tasks found',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Add a task to get started.',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        LayoutBuilder(
+                          builder: (context, taskConstraints) {
+                            final cardWidth =
+                                taskConstraints.maxWidth >= 700
+                                    ? (taskConstraints.maxWidth -
+                                            12) /
+                                        2
+                                    : taskConstraints.maxWidth;
+
+                            return Wrap(
+                              spacing: 12,
+                              children: filteredTasks.map((task) {
+                                return SizedBox(
+                                  width: cardWidth,
+                                  child: buildTaskCard(task),
+                                );
+                              }).toList(),
+                            );
+                          },
                         ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          searchText = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'My Tasks',
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: showAddTaskDialog,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Task'),
+      ),
+    );
+  }
+}
+
+class StatisticsScreen extends StatelessWidget {
+  final List<Task> tasks;
+
+  const StatisticsScreen({
+    super.key,
+    required this.tasks,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = tasks.length;
+    final completed =
+        tasks.where((task) => task.completed).length;
+    final pending = total - completed;
+
+    final progress = total == 0 ? 0.0 : completed / total;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Task Statistics'),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Icon(
+                Icons.insights,
+                size: 70,
+                color: Colors.indigo,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Your Productivity',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Track your progress and stay motivated.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 28),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Completion Progress',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: filteredTasks.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.search_off,
-                                    size: 70,
-                                    color: Colors.indigo,
-                                  ),
-                                  const SizedBox(height: 15),
-                                  Text(
-                                    searchText.isEmpty
-                                        ? 'No tasks yet!'
-                                        : 'No matching tasks found!',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    searchText.isEmpty
-                                        ? 'Tap "Add Task" to create your first task.'
-                                        : 'Try searching for another task.',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : GridView.builder(
-                              itemCount: filteredTasks.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount:
-                                    isWideScreen ? 2 : 1,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 0,
-                                childAspectRatio:
-                                    isWideScreen ? 3.0 : 4.2,
-                              ),
-                              itemBuilder: (context, index) {
-                                return buildTaskCard(
-                                  filteredTasks[index],
-                                );
-                              },
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: 150,
+                        height: 150,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CircularProgressIndicator(
+                              value: progress,
+                              strokeWidth: 12,
+                              backgroundColor:
+                                  Colors.indigo.shade100,
+                              color: Colors.indigo,
                             ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                            Center(
+                              child: Text(
+                                '${(progress * 100).round()}%',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '$completed of $total tasks completed',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              _statCard(
+                'Total Tasks',
+                total,
+                Icons.checklist,
+                Colors.indigo,
+              ),
+              _statCard(
+                'Completed Tasks',
+                completed,
+                Icons.task_alt,
+                Colors.green,
+              ),
+              _statCard(
+                'Pending Tasks',
+                pending,
+                Icons.pending_actions,
+                Colors.orange,
+              ),
+
+              const SizedBox(height: 20),
+
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back to My Tasks'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(
+    String title,
+    int count,
+    IconData icon,
+    Color color,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withValues(alpha: 0.12),
+          child: Icon(icon, color: color),
+        ),
+        title: Text(title),
+        trailing: Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
       ),
