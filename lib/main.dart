@@ -43,7 +43,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final List<Task> tasks = [];
-  final TextEditingController searchController = TextEditingController();
+  final TextEditingController searchController =
+      TextEditingController();
 
   String searchText = '';
 
@@ -59,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Commit 3: Clear all tasks
   void clearAllTasks() {
     setState(() {
       tasks.clear();
@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -86,54 +86,61 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Add New Task',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Task name',
-                      hintText: 'Enter your task',
-                      border: OutlineInputBorder(),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Task name',
+                        hintText: 'Enter your task',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedPriority,
-                    decoration: const InputDecoration(
-                      labelText: 'Priority',
-                      border: OutlineInputBorder(),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedPriority,
+                      decoration: const InputDecoration(
+                        labelText: 'Priority',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: ['Low', 'Medium', 'High']
+                          .map(
+                            (priority) => DropdownMenuItem<String>(
+                              value: priority,
+                              child: Text(priority),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() {
+                            selectedPriority = value;
+                          });
+                        }
+                      },
                     ),
-                    items: ['Low', 'Medium', 'High']
-                        .map(
-                          (priority) => DropdownMenuItem(
-                            value: priority,
-                            child: Text(priority),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedPriority = value!;
-                      });
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    titleController.dispose();
+                    Navigator.pop(dialogContext);
                   },
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Commit 4: Empty-task validation
                     if (titleController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please enter a task name'),
+                          content: Text(
+                            'Please enter a task name',
+                          ),
                         ),
                       );
                       return;
@@ -144,7 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       selectedPriority,
                     );
 
-                    Navigator.pop(context);
+                    titleController.dispose();
+                    Navigator.pop(dialogContext);
                   },
                   child: const Text('Add Task'),
                 ),
@@ -166,14 +174,123 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget buildSummaryItem(
+    IconData icon,
+    String count,
+    String label,
+  ) {
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 28),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              count,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildTaskCard(Task task) {
+    final originalIndex = tasks.indexOf(task);
+    final priorityColor = getPriorityColor(task.priority);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 6,
+        ),
+        leading: Checkbox(
+          value: task.completed,
+          onChanged: (_) => toggleTask(originalIndex),
+        ),
+        title: Text(
+          task.title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            decoration: task.completed
+                ? TextDecoration.lineThrough
+                : TextDecoration.none,
+            color: task.completed ? Colors.grey : Colors.black,
+          ),
+        ),
+        subtitle: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 3,
+            ),
+            decoration: BoxDecoration(
+              color: priorityColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              task.priority,
+              style: TextStyle(
+                color: priorityColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        trailing: IconButton(
+          tooltip: 'Delete task',
+          icon: const Icon(
+            Icons.delete_outline,
+            color: Colors.red,
+          ),
+          onPressed: () => deleteTask(originalIndex),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    int completedCount =
+    // Responsive UI: get the available screen width.
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    final contentMaxWidth =
+        screenWidth >= 1000 ? 1000.0 : screenWidth;
+
+    final completedCount =
         tasks.where((task) => task.completed).length;
 
-    int pendingCount = tasks.length - completedCount;
+    final pendingCount = tasks.length - completedCount;
 
-    // Commit 5: Filter tasks according to search text
     final filteredTasks = tasks.where((task) {
       return task.title
           .toLowerCase()
@@ -189,17 +306,47 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-
-        // Commit 3: Clear All Tasks button
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
             tooltip: 'Clear All Tasks',
-            onPressed: clearAllTasks,
+            onPressed: () {
+              if (tasks.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('There are no tasks to clear'),
+                  ),
+                );
+                return;
+              }
+
+              showDialog(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Clear all tasks?'),
+                  content: const Text(
+                    'This will remove every task from the list.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pop(dialogContext),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        clearAllTasks();
+                        Navigator.pop(dialogContext);
+                      },
+                      child: const Text('Clear All'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton.extended(
         onPressed: showAddTaskDialog,
         backgroundColor: Colors.indigo,
@@ -207,258 +354,149 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Add Task'),
       ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: contentMaxWidth,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            // LayoutBuilder adapts the task layout to available width.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWideScreen =
+                    constraints.maxWidth >= 700;
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Summary Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.indigo,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      const Icon(
-                        Icons.list_alt,
-                        color: Colors.white,
-                        size: 30,
+                return Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 20,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${tasks.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      const Text(
-                        'Total',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      const Icon(
-                        Icons.pending_actions,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$pendingCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Text(
-                        'Pending',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$completedCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Text(
-                        'Completed',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Commit 5: Search field
-            TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search tasks...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: searchText.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          searchController.clear();
-                          setState(() {
-                            searchText = '';
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  searchText = value;
-                });
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'My Tasks',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Expanded(
-              child: filteredTasks.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
                         children: [
-                          const Icon(
-                            Icons.search_off,
-                            size: 70,
-                            color: Colors.indigo,
+                          buildSummaryItem(
+                            Icons.list_alt,
+                            '${tasks.length}',
+                            'Total',
                           ),
-                          const SizedBox(height: 15),
-                          Text(
-                            searchText.isEmpty
-                                ? 'No tasks yet!'
-                                : 'No matching tasks found!',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          buildSummaryItem(
+                            Icons.pending_actions,
+                            '$pendingCount',
+                            'Pending',
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            searchText.isEmpty
-                                ? 'Tap "Add Task" to create your first task.'
-                                : 'Try searching for another task.',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                            ),
+                          buildSummaryItem(
+                            Icons.check_circle,
+                            '$completedCount',
+                            'Completed',
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: filteredTasks.length,
-                      itemBuilder: (context, index) {
-                        final task = filteredTasks[index];
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-
-                            leading: Checkbox(
-                              value: task.completed,
-                              onChanged: (_) {
-                                final originalIndex =
-                                    tasks.indexOf(task);
-                                toggleTask(originalIndex);
-                              },
-                            ),
-
-                            title: Text(
-                              task.title,
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                decoration: task.completed
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
-                                color: task.completed
-                                    ? Colors.grey
-                                    : Colors.black,
-                              ),
-                            ),
-
-                            subtitle: Row(
-                              children: [
-                                Container(
-                                  margin: const EdgeInsets.only(top: 5),
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search tasks...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: searchText.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  searchController.clear();
+                                  setState(() {
+                                    searchText = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          searchText = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'My Tasks',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: filteredTasks.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.search_off,
+                                    size: 70,
+                                    color: Colors.indigo,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: getPriorityColor(
-                                      task.priority,
-                                    ).withOpacity(0.15),
-                                    borderRadius:
-                                        BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    task.priority,
-                                    style: TextStyle(
-                                      color: getPriorityColor(
-                                        task.priority,
-                                      ),
+                                  const SizedBox(height: 15),
+                                  Text(
+                                    searchText.isEmpty
+                                        ? 'No tasks yet!'
+                                        : 'No matching tasks found!',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-
-                            trailing: IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.red,
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    searchText.isEmpty
+                                        ? 'Tap "Add Task" to create your first task.'
+                                        : 'Try searching for another task.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () {
-                                final originalIndex =
-                                    tasks.indexOf(task);
-                                deleteTask(originalIndex);
+                            )
+                          : GridView.builder(
+                              itemCount: filteredTasks.length,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount:
+                                    isWideScreen ? 2 : 1,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 0,
+                                childAspectRatio:
+                                    isWideScreen ? 3.0 : 4.2,
+                              ),
+                              itemBuilder: (context, index) {
+                                return buildTaskCard(
+                                  filteredTasks[index],
+                                );
                               },
                             ),
-                          ),
-                        );
-                      },
                     ),
+                  ],
+                );
+              },
             ),
-          ],
+          ),
         ),
       ),
     );
