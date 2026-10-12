@@ -7,6 +7,7 @@ void main() {
   runApp(const TodoApp());
 }
 
+// TASK MODEL
 class Task {
   String title;
   String priority;
@@ -19,6 +20,7 @@ class Task {
   });
 }
 
+// MAIN APP
 class TodoApp extends StatelessWidget {
   const TodoApp({super.key});
 
@@ -39,6 +41,7 @@ class TodoApp extends StatelessWidget {
   }
 }
 
+// HOME SCREEN
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -48,6 +51,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final List<Task> tasks = [];
+
   final TextEditingController searchController =
       TextEditingController();
 
@@ -67,7 +71,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void addTask(String title, String priority) {
     setState(() {
-      tasks.add(Task(title: title, priority: priority));
+      tasks.add(
+        Task(
+          title: title,
+          priority: priority,
+        ),
+      );
     });
   }
 
@@ -83,10 +92,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Task deleted')),
+      const SnackBar(
+        content: Text('Task deleted'),
+      ),
     );
   }
 
+  // ADD TASK FORM WITH VALIDATION
   Future<void> showAddTaskDialog() async {
     final titleController = TextEditingController();
     String selectedPriority = 'Medium';
@@ -146,8 +158,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () =>
-                      Navigator.pop(dialogContext),
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                  },
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
@@ -156,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         titleController.text.trim();
 
                     if (title.isEmpty) {
-                      ScaffoldMessenger.of(context)
+                      ScaffoldMessenger.of(this.context)
                           .showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -168,12 +181,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                     addTask(title, selectedPriority);
+
                     Navigator.pop(dialogContext);
 
                     ScaffoldMessenger.of(this.context)
                         .showSnackBar(
                       const SnackBar(
-                        content: Text('Task added successfully'),
+                        content: Text(
+                          'Task added successfully',
+                        ),
                       ),
                     );
                   },
@@ -189,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
     titleController.dispose();
   }
 
+  // CLEAR ALL TASKS
   Future<void> clearAllTasks() async {
     if (tasks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,24 +218,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear All Tasks?'),
-        content: const Text(
-          'Are you sure you want to delete all tasks?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Clear All Tasks?'),
+          content: const Text(
+            'Are you sure you want to delete all tasks?',
           ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, true),
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Clear All'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm == true) {
@@ -229,11 +250,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All tasks cleared')),
+        const SnackBar(
+          content: Text('All tasks cleared'),
+        ),
       );
     }
   }
 
+  // PRIORITY COLORS
   Color priorityColor(String priority) {
     switch (priority) {
       case 'High':
@@ -245,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // SUMMARY WIDGET
   Widget buildSummaryItem(
     String label,
     int count,
@@ -274,6 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // TASK CARD
   Widget buildTaskCard(Task task) {
     return Card(
       elevation: 2,
@@ -413,6 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
+                      // ANIMATED WELCOME BANNER
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -426,20 +453,46 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius:
                               BorderRadius.circular(20),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Stay Organized!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold,
+                            TweenAnimationBuilder<double>(
+                              tween: Tween<double>(
+                                begin: 0.0,
+                                end: 1.0,
+                              ),
+                              duration: const Duration(
+                                seconds: 3,
+                              ),
+                              curve: Curves.easeOut,
+                              builder: (
+                                context,
+                                value,
+                                child,
+                              ) {
+                                return Opacity(
+                                  opacity: value,
+                                  child: Transform.translate(
+                                    offset: Offset(
+                                      0,
+                                      40 * (1 - value),
+                                    ),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'Stay Organized!',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
+                            const SizedBox(height: 8),
+                            const Text(
                               'Plan your day and achieve your goals.',
                               style: TextStyle(
                                 color: Colors.white,
@@ -449,7 +502,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
+
                       const SizedBox(height: 20),
+
+                      // TASK SUMMARY
                       Card(
                         elevation: 1,
                         child: Padding(
@@ -481,7 +537,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
+
+                      // SEARCH
                       TextField(
                         controller: searchController,
                         onChanged: (value) {
@@ -512,7 +571,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
+
+                      // TASK LIST TITLE
                       Row(
                         mainAxisAlignment:
                             MainAxisAlignment.spaceBetween,
@@ -532,7 +594,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 12),
+
                       if (filteredTasks.isEmpty)
                         Center(
                           child: Padding(
@@ -541,8 +605,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Icon(
                                   searchText.isEmpty
-                                      ? Icons
-                                          .format_list_bulleted
+                                      ? Icons.format_list_bulleted
                                       : Icons.search_off,
                                   size: 55,
                                   color: Colors.indigo.shade200,
@@ -570,7 +633,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       else
                         LayoutBuilder(
-                          builder: (context, taskConstraints) {
+                          builder: (
+                            context,
+                            taskConstraints,
+                          ) {
                             final cardWidth =
                                 taskConstraints.maxWidth >= 700
                                     ? (taskConstraints.maxWidth -
@@ -606,6 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// STATISTICS SCREEN
 class StatisticsScreen extends StatelessWidget {
   final List<Task> tasks;
 
@@ -761,11 +828,13 @@ class StatisticsScreen extends StatelessWidget {
   }
 }
 
+// REST API SCREEN
 class ApiTasksScreen extends StatefulWidget {
   const ApiTasksScreen({super.key});
 
   @override
-  State<ApiTasksScreen> createState() => _ApiTasksScreenState();
+  State<ApiTasksScreen> createState() =>
+      _ApiTasksScreenState();
 }
 
 class _ApiTasksScreenState extends State<ApiTasksScreen> {
@@ -792,7 +861,9 @@ class _ApiTasksScreenState extends State<ApiTasksScreen> {
               'https://jsonplaceholder.typicode.com/todos?_limit=10',
             ),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(
+            const Duration(seconds: 15),
+          );
 
       if (response.statusCode == 200) {
         final List<dynamic> data =
@@ -911,7 +982,9 @@ class _ApiTasksScreenState extends State<ApiTasksScreen> {
                               'Task ID: ${task['id']}',
                             ),
                             trailing: Text(
-                              completed ? 'Completed' : 'Pending',
+                              completed
+                                  ? 'Completed'
+                                  : 'Pending',
                               style: TextStyle(
                                 color: completed
                                     ? Colors.green
