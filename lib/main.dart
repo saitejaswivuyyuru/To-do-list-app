@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const TodoApp());
@@ -88,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final titleController = TextEditingController();
     String selectedPriority = 'Medium';
 
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
@@ -189,7 +192,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> clearAllTasks() async {
     if (tasks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('There are no tasks to clear')),
+        const SnackBar(
+          content: Text('There are no tasks to clear'),
+        ),
       );
       return;
     }
@@ -356,8 +361,19 @@ class _HomeScreenState extends State<HomeScreen> {
           'Smart To-Do List',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        centerTitle: false,
         actions: [
+          IconButton(
+            tooltip: 'API Tasks',
+            icon: const Icon(Icons.cloud_download_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ApiTasksScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Statistics',
             icon: const Icon(Icons.bar_chart),
@@ -434,7 +450,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
                       Card(
                         elevation: 1,
                         child: Padding(
@@ -466,9 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       TextField(
                         controller: searchController,
                         onChanged: (value) {
@@ -499,9 +512,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       Row(
                         mainAxisAlignment:
                             MainAxisAlignment.spaceBetween,
@@ -521,9 +532,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 12),
-
                       if (filteredTasks.isEmpty)
                         Center(
                           child: Padding(
@@ -611,7 +620,6 @@ class StatisticsScreen extends StatelessWidget {
     final completed =
         tasks.where((task) => task.completed).length;
     final pending = total - completed;
-
     final progress = total == 0 ? 0.0 : completed / total;
 
     return Scaffold(
@@ -645,7 +653,6 @@ class StatisticsScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 28),
-
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(22),
@@ -695,9 +702,7 @@ class StatisticsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               _statCard(
                 'Total Tasks',
                 total,
@@ -716,9 +721,7 @@ class StatisticsScreen extends StatelessWidget {
                 Icons.pending_actions,
                 Colors.orange,
               ),
-
               const SizedBox(height: 20),
-
               FilledButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
@@ -754,6 +757,173 @@ class StatisticsScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class ApiTasksScreen extends StatefulWidget {
+  const ApiTasksScreen({super.key});
+
+  @override
+  State<ApiTasksScreen> createState() => _ApiTasksScreenState();
+}
+
+class _ApiTasksScreenState extends State<ApiTasksScreen> {
+  List<dynamic> apiTasks = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTasks();
+  }
+
+  Future<void> fetchTasks() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse(
+              'https://jsonplaceholder.typicode.com/todos?_limit=10',
+            ),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data =
+            jsonDecode(response.body) as List<dynamic>;
+
+        if (!mounted) return;
+
+        setState(() {
+          apiTasks = data;
+          isLoading = false;
+        });
+      } else {
+        throw Exception(
+          'Server returned ${response.statusCode}',
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage =
+            'Unable to load tasks. Check your internet connection.';
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Online API Tasks'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh tasks',
+            onPressed: fetchTasks,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading tasks from API...'),
+                ],
+              ),
+            )
+          : errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.wifi_off,
+                          size: 50,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          errorMessage!,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: fetchTasks,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try Again'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : apiTasks.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No tasks received from the API.',
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: apiTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = apiTasks[index];
+                        final bool completed =
+                            task['completed'] == true;
+
+                        return Card(
+                          margin: const EdgeInsets.only(
+                            bottom: 12,
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: completed
+                                  ? Colors.green.shade100
+                                  : Colors.orange.shade100,
+                              child: Icon(
+                                completed
+                                    ? Icons.check
+                                    : Icons.pending_actions,
+                                color: completed
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            ),
+                            title: Text(
+                              task['title']?.toString() ??
+                                  'Untitled task',
+                            ),
+                            subtitle: Text(
+                              'Task ID: ${task['id']}',
+                            ),
+                            trailing: Text(
+                              completed ? 'Completed' : 'Pending',
+                              style: TextStyle(
+                                color: completed
+                                    ? Colors.green
+                                    : Colors.orange.shade800,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
     );
   }
 }
