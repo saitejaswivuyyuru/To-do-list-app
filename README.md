@@ -27,4 +27,4 @@ Added a search feature to find tasks easily.
 - Clear all tasks
 - Search tasks
 
-- The following screenshots demonstrate the git commit history and development progress of the Smart To Do List application
+ The following screenshots demonstrate the git commit history and development progress of the Smart To Do List application
